@@ -15,6 +15,7 @@ _import_structure = {
     ],
     "extras": [
         "BestOfNSampler",
+        "CHAT_TEMPLATE_MAPPINGS",
     ],
     "import_utils": [
         "is_bitsandbytes_available",
@@ -81,7 +82,7 @@ else:
 if TYPE_CHECKING:
     from .core import set_seed
     from .environment import TextEnvironment, TextHistory
-    from .extras import BestOfNSampler
+    from .extras import BestOfNSampler, CHAT_TEMPLATE_MAPPINGS
     from .import_utils import (
         is_bitsandbytes_available,
         is_diffusers_available,

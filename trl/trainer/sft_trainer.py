@@ -577,6 +577,8 @@ class SFTTrainer(Trainer):
             if tokenizer is None:
                 raise ValueError("You need to pass a tokenizer when using `dataset_text_field` with `SFTTrainer`.")
 
+            # bh: pack examples into constant length
+            # bh: doesn't handle attention cross examples
             constant_length_iterator = ConstantLengthDataset(
                 tokenizer,
                 dataset,

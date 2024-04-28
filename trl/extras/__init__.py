@@ -20,10 +20,12 @@ from ..import_utils import _LazyModule
 
 _import_structure = {
     "best_of_n_sampler": ["BestOfNSampler"],
+    "dataset_formatting": ["CHAT_TEMPLATE_MAPPINGS"],
 }
 
 if TYPE_CHECKING:
     from .best_of_n_sampler import BestOfNSampler
+    from .dataset_formatting import CHAT_TEMPLATE_MAPPINGS
 else:
     import sys
 

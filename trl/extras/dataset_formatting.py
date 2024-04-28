@@ -12,6 +12,14 @@ FORMAT_MAPPING = {
     "instruction": {"completion": Value(dtype="string", id=None), "prompt": Value(dtype="string", id=None)},
 }
 
+CHAT_TEMPLATE_MAPPINGS = {
+    "vigogne_chat_v4": {
+        "instruction_template": "<|user|>",
+        "response_template": "<|assistant|>",
+        "chat_template": "{{ bos_token }}{% for message in messages %}{% if message['role'] == 'user' %}{{ '<|user|>' + message['content'] + eos_token }}{% elif message['role'] == 'system' %}{{ '<|system|>' + message['content'] + eos_token }}{% elif message['role'] == 'assistant' %}{{ '<|assistant|>'  + message['content'] + eos_token }}{% endif %}{% if loop.last and add_generation_prompt %}{{ '<|assistant|>' }}{% endif %}{% endfor %}",
+    }
+}
+
 
 def conversations_formatting_function(tokenizer: AutoTokenizer, messages_field: Literal["messages", "conversations"]):
     r"""

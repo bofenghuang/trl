@@ -19,7 +19,7 @@ import os
 import sys
 from copy import deepcopy
 from dataclasses import asdict, dataclass, field, fields
-from typing import Any, List
+from typing import Any, List, Optional
 
 import yaml
 from transformers import HfArgumentParser
@@ -141,7 +141,9 @@ def init_zero_verbose():
 
 @dataclass
 class SFTScriptArguments:
-    dataset_name: str = field(default="timdettmers/openassistant-guanaco", metadata={"help": "the dataset name"})
+    # dataset_name: str = field(default="timdettmers/openassistant-guanaco", metadata={"help": "the dataset name"})
+    train_data_name_or_path: str = field(default="timdettmers/openassistant-guanaco", metadata={"help": "the dataset name"})
+    eval_data_name_or_path: Optional[str] = field(default=None, metadata={"help": "the dataset name"})
     dataset_train_split: str = field(default="train", metadata={"help": "The dataset split to train on"})
     dataset_test_split: str = field(default="test", metadata={"help": "The dataset split to evaluate on"})
     config: str = field(default=None, metadata={"help": "Path to the optional config file"})

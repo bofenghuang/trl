@@ -75,6 +75,8 @@ class ModelConfig:
         default="nf4", metadata={"help": "precise the quantization type (fp4 or nf4)"}
     )
     use_bnb_nested_quant: bool = field(default=False, metadata={"help": "use nested quantization"})
+    chat_template: Optional[str] = field(default=None, metadata={"help": "Chat template"})
+    pad_token: Optional[str] = field(default=None, metadata={"help": ""})
 
     def to_dict(self):
         output_dict = {}

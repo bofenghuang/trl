@@ -156,6 +156,7 @@ class DataCollatorForCompletionOnlyLM(DataCollatorForLanguageModeling):
                 response_token_ids_idxs = []
                 human_token_ids_idxs = []
 
+                # bh: get the last idx of response_token_ids
                 for assistant_idx in np.where(batch["labels"][i] == self.response_token_ids[0])[0]:
                     # find the indexes of the start of a response.
                     if (
@@ -173,6 +174,7 @@ class DataCollatorForCompletionOnlyLM(DataCollatorForLanguageModeling):
                     )
                     batch["labels"][i, :] = self.ignore_index
 
+                # bh: get the first idx of instruction_token_ids
                 human_token_ids = self.instruction_token_ids
                 for human_idx in np.where(batch["labels"][i] == human_token_ids[0])[0]:
                     # find the indexes of the start of a human answer.
@@ -188,6 +190,8 @@ class DataCollatorForCompletionOnlyLM(DataCollatorForLanguageModeling):
                     )
                     batch["labels"][i, :] = self.ignore_index
 
+                # bh: if 1st instruction_token_ids not before 1st response_token_ids
+                # bh: safe?
                 if (
                     len(human_token_ids_idxs) > 0
                     and len(response_token_ids_idxs) > 0
@@ -200,8 +204,11 @@ class DataCollatorForCompletionOnlyLM(DataCollatorForLanguageModeling):
                     if idx != 0:
                         batch["labels"][i, start:end] = self.ignore_index
                     else:
+                        # bh: in case of 1st turn, mask all tokens before (and including) the first token of response_token_ids
+                        # bh: which includes the system message
                         batch["labels"][i, :end] = self.ignore_index
 
+                # bh: safe?
                 if len(response_token_ids_idxs) < len(human_token_ids_idxs):
                     batch["labels"][i, human_token_ids_idxs[-1] :] = self.ignore_index
 
