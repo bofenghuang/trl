@@ -1,0 +1,161 @@
+"""Run Online DPO training with Voxtral model."""
+
+import argparse
+import warnings
+from dataclasses import dataclass, field
+
+import torch
+from datasets import DatasetDict, load_dataset
+from judges import VLLMPairwiseJudge
+from transformers import GenerationConfig, VoxtralForConditionalGeneration, VoxtralProcessor
+
+from trl import (
+    DatasetMixtureConfig,
+    LogCompletionsCallback,
+    ModelConfig,
+    OnlineDPOConfig,
+    OnlineDPOTrainer,
+    ScriptArguments,
+    TrlParser,
+    clone_chat_template,
+    get_dataset,
+    get_kbit_device_map,
+    get_peft_config,
+    get_quantization_config,
+)
+
+
+@dataclass
+class MyScriptArguments(ScriptArguments):
+    train_dataset_file: str = field(
+        default=None,
+        metadata={"help": "Path or name of the dataset to load for training."},
+    )
+    eval_dataset_file: str = field(
+        default=None,
+        metadata={"help": "Path or name of the dataset to load for evaluation."},
+    )
+
+
+def main(script_args, training_args, model_args, dataset_args):
+    # Create processor
+    processor = VoxtralProcessor.from_pretrained(
+        model_args.model_name_or_path,
+        # not supported by mistral tokenizer
+        # trust_remote_code=model_args.trust_remote_code,
+        # use_fast=True
+    )
+
+    # Model init kwargs & Tokenizer
+    quantization_config = get_quantization_config(model_args)
+    model_kwargs = dict(
+        revision=model_args.model_revision,
+        trust_remote_code=model_args.trust_remote_code,
+        attn_implementation=model_args.attn_implementation,
+        dtype=model_args.dtype,
+        # use_cache=False if training_args.gradient_checkpointing else True,  # not supported
+        device_map=get_kbit_device_map() if quantization_config is not None else None,
+        quantization_config=quantization_config,
+    )
+
+    # Create model
+    model = VoxtralForConditionalGeneration.from_pretrained(model_args.model_name_or_path, **model_kwargs)
+
+    # Freeze the audio encoder model.audio_tower
+    for param in model.audio_tower.parameters():
+        param.requires_grad = False
+    # for param in model.multi_modal_projector.parameters():
+    #     param.requires_grad = False
+
+    peft_config = get_peft_config(model_args)
+    # if peft_config is None:
+    #     ref_model = VoxtralForConditionalGeneration.from_pretrained(model_args.model_name_or_path, **model_kwargs)
+    # else:
+    #     ref_model = None
+
+    # Set default chat template if needed
+    # if tokenizer.chat_template is None:
+    #     # TODO: source should be passed as an argument
+    #     model, tokenizer = clone_chat_template(model, tokenizer, "Qwen/Qwen3-0.6B")
+
+    judge = VLLMPairwiseJudge(
+        # temperature=0.0,
+        max_tokens=1024,
+        max_workers=32,  # tune based on your vLLM server throughput
+    )
+
+    # Load the dataset
+    if dataset_args.datasets and script_args.dataset_name:
+        warnings.warn(
+            "Both `datasets` and `dataset_name` are provided. The `datasets` argument will be used to load the "
+            "dataset and `dataset_name` will be ignored."
+        )
+    elif dataset_args.datasets and not script_args.dataset_name:
+        dataset = get_dataset(dataset_args)
+    elif not dataset_args.datasets and script_args.dataset_name:
+        dataset = load_dataset(
+            script_args.dataset_name, name=script_args.dataset_config, streaming=script_args.dataset_streaming
+        )
+    elif script_args.train_dataset_file:
+        # load from json file
+        dataset = DatasetDict()
+        dataset["train"] = load_dataset("json", data_files=script_args.train_dataset_file, split="train")
+        dataset["test"] = (
+            load_dataset("json", data_files=script_args.eval_dataset_file, split="train")
+            if script_args.eval_dataset_file
+            else None
+        )
+    else:
+        raise ValueError("Either `datasets` or `dataset_name` must be provided.")
+
+    # Initialize the Online DPO trainer
+    trainer = OnlineDPOTrainer(
+        model=model,
+        judge=judge,
+        args=training_args,
+        # data_collator=collate_fn,
+        train_dataset=dataset[script_args.dataset_train_split],
+        eval_dataset=dataset[script_args.dataset_test_split] if training_args.eval_strategy != "no" else None,
+        processing_class=processor,  # todo
+        peft_config=peft_config,
+    )
+
+    # if training_args.eval_strategy != "no":
+    #     generation_config = GenerationConfig(
+    #         max_new_tokens=training_args.max_new_tokens, do_sample=True, temperature=training_args.temperature
+    #     )
+    #     completions_callback = LogCompletionsCallback(trainer, generation_config, num_prompts=8)
+    #     trainer.add_callback(completions_callback)
+
+    # Train the model
+    trainer.train()
+
+    # Save and push to Hub
+    trainer.save_model(training_args.output_dir)
+    processor.save_pretrained(training_args.output_dir)
+    if training_args.push_to_hub:
+        trainer.push_to_hub(dataset_name=script_args.dataset_name)
+
+
+def make_parser(subparsers: argparse._SubParsersAction = None):
+    dataclass_types = (MyScriptArguments, OnlineDPOConfig, ModelConfig, DatasetMixtureConfig)
+    if subparsers is not None:
+        parser = subparsers.add_parser(
+            "online_dpo", help="Run the Online DPO training script", dataclass_types=dataclass_types
+        )
+    else:
+        parser = TrlParser(dataclass_types)
+    return parser
+
+
+if __name__ == "__main__":
+    parser = make_parser()
+    # When using the trl cli, this script may be run with additional arguments, corresponding accelerate arguments.
+    # To ensure that their parsing does not interfere with the script arguments, parse the arguments with
+    # `return_remaining_strings=True`, then ignore the remaining strings.
+    script_args, training_args, model_args, dataset_args, _ = parser.parse_args_and_config(
+        return_remaining_strings=True
+    )
+    # training_args.gradient_checkpointing = False
+    # training_args.gradient_checkpointing_kwargs = {"use_reentrant": True}
+    main(script_args, training_args, model_args, dataset_args)
