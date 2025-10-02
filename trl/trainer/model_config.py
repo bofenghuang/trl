@@ -144,6 +144,10 @@ class ModelConfig:
         default="CAUSAL_LM",
         metadata={"help": "Task type to pass for LoRA (use 'SEQ_CLS' for reward modeling)."},
     )
+    lora_exclude_modules: Optional[str] = field(
+        default=None,
+        metadata={"help": "Model layers to exclude from LoRA."},
+    )
     use_rslora: bool = field(
         default=False,
         metadata={

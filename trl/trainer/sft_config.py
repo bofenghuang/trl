@@ -99,7 +99,7 @@ class SFTConfig(TrainingArguments):
             Whether to offload the activations to the CPU.
     """
 
-    _VALID_DICT_FIELDS = TrainingArguments._VALID_DICT_FIELDS + ["model_init_kwargs"]
+    _VALID_DICT_FIELDS = TrainingArguments._VALID_DICT_FIELDS + ["model_init_kwargs", "dataset_kwargs"]
 
     # Parameters whose default values are overridden from TrainingArguments
     learning_rate: float = field(
@@ -153,7 +153,10 @@ class SFTConfig(TrainingArguments):
         default="text",
         metadata={"help": "Name of the column that contains text data in the dataset."},
     )
-    dataset_kwargs: Optional[dict[str, Any]] = field(
+    # Important: keep this typed as Optional[str] so CLI can pass a JSON string.
+    # TrainingArguments.__post_init__ will convert strings starting with '{' to dict
+    # for any field listed in _VALID_DICT_FIELDS.
+    dataset_kwargs: Optional[str] = field(
         default=None,
         metadata={
             "help": "Dictionary of optional keyword arguments for the dataset preparation. The only supported key is "

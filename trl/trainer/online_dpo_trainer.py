@@ -515,6 +515,8 @@ class OnlineDPOTrainer(Trainer):
                     "seed": self.accelerator.process_index // self.vllm_tensor_parallel_size,
                     # Latest vLLM v1 memory profiler is misled by the high default value (i.e., 32768)
                     "max_num_batched_tokens": 4096,
+                    # tmp fix: mistral tokenizer
+                    "tokenizer_mode": "mistral",
                 }
 
                 # vLLM requires the environment variables to be set for distributed training.
@@ -1016,7 +1018,11 @@ class OnlineDPOTrainer(Trainer):
                 inputs[i]["image"] = image
 
         # Apply chat template to get text prompts
-        prompts_text = [maybe_apply_chat_template(x, self.processing_class)["prompt"] for x in inputs]
+        # prompts_text = [maybe_apply_chat_template(x, self.processing_class)["prompt"] for x in inputs]
+        # tmp fix: mistral tokenizer
+        prompts_text = self.processing_class.apply_chat_template(
+            [x["prompt"] for x in inputs]
+        )
 
         # Handle image token collapsing/removal
         # The chat template sometimes inserts a single image token into the prompt text. However, when this text is
@@ -1049,15 +1055,20 @@ class OnlineDPOTrainer(Trainer):
         if images is not None:
             kwargs = {"images": [[img] for img in images]}
 
-        # Process inputs using the processing class (handles both VLM and LLM)
-        prompt_inputs = self.processing_class(
-            text=prompts_text,
-            return_tensors="pt",
-            padding=True,
-            padding_side="left",
-            add_special_tokens=False,
-            **kwargs,
-        )
+        # tmp fix: mistral tokenizer always tokenizes when apply_chat_template is called
+        if "input_ids" in prompts_text:
+            prompt_inputs = prompts_text
+        else:
+
+            # Process inputs using the processing class (handles both VLM and LLM)
+            prompt_inputs = self.processing_class(
+                text=prompts_text,
+                return_tensors="pt",
+                padding=True,
+                padding_side="left",
+                add_special_tokens=False,
+                **kwargs,
+            )
 
         prompt_inputs = {k: v.to(device) for k, v in prompt_inputs.items()}
         # Convert vision inputs to model's dtype for proper computation
@@ -1075,6 +1086,12 @@ class OnlineDPOTrainer(Trainer):
 
         # Prepare vision inputs if available
         vision_generation_kwargs = {}
+
+        # add audio llm support
+        if "input_features" in prompt_inputs:
+            # todo: or (2, 1, 1, 1) from [9, 128, 3000], need to check how voxtral handles fbanks
+            vision_generation_kwargs["input_features"] = prompt_inputs["input_features"].repeat(2, 1, 1)
+
         if self.is_vision_model and images is not None:
             if "pixel_values" in prompt_inputs:
                 vision_generation_kwargs["pixel_values"] = prompt_inputs["pixel_values"].repeat(2, 1, 1, 1)
@@ -1139,12 +1156,15 @@ class OnlineDPOTrainer(Trainer):
                     unwrapped_model.generation_config.cache_implementation = self.args.cache_implementation
 
                 # Standard generation
+                # ? why they don't do this, cause it speeds up generation a lot
+                self.generation_config.use_cache = True
                 output = unwrapped_model.generate(
                     input_ids=prompt_ids,
                     attention_mask=prompt_mask,
                     generation_config=self.generation_config,
                     **vision_generation_kwargs,
                 )
+                self.generation_config.use_cache = False
 
             completion_ids = output[:, prompt_ids.size(1) :]
             completion_ids, completion_mask = truncate_right(completion_ids, eos_token_id, pad_token_id)
@@ -1351,8 +1371,11 @@ class OnlineDPOTrainer(Trainer):
             if is_conversational({"prompt": prompts[0]}):
                 environment = jinja2.Environment()
                 template = environment.from_string(SIMPLE_CHAT_TEMPLATE)
-                prompts = [template.render(messages=prompt) for prompt in prompts]
-                completions = [template.render(messages=completion) for completion in completions]
+                # prompts = [template.render(messages=prompt) for prompt in prompts]
+                # completions = [template.render(messages=completion) for completion in completions]
+                # prompts = [template.render(messages=prompt) for prompt in inputs["judge_prompt"]]
+                prompts = inputs["judge_prompt"]
+                print(f"Completions: {completions}")
 
             ranks_of_first_completion = self.judge.judge(
                 prompts, list(zip(completions[:batch_size], completions[batch_size:]))

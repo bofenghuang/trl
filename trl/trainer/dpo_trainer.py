@@ -458,15 +458,19 @@ class DPOTrainer(Trainer):
         self.dataset_num_proc = args.dataset_num_proc
 
         # Dataset preparation
-        train_dataset = self._prepare_dataset(train_dataset, processing_class, args, "train")
-        if eval_dataset is not None:
-            if isinstance(eval_dataset, dict):
-                eval_dataset = {
-                    key: self._prepare_dataset(dataset, processing_class, args, key)
-                    for key, dataset in eval_dataset.items()
-                }
-            else:
-                eval_dataset = self._prepare_dataset(eval_dataset, processing_class, args, "eval")
+        skip_prepare_dataset = (
+            args.dataset_kwargs is not None and args.dataset_kwargs.get("skip_prepare_dataset", False) or self._is_vlm
+        )
+        if not skip_prepare_dataset:
+            train_dataset = self._prepare_dataset(train_dataset, processing_class, args, "train")
+            if eval_dataset is not None:
+                if isinstance(eval_dataset, dict):
+                    eval_dataset = {
+                        key: self._prepare_dataset(dataset, processing_class, args, key)
+                        for key, dataset in eval_dataset.items()
+                    }
+                else:
+                    eval_dataset = self._prepare_dataset(eval_dataset, processing_class, args, "eval")
 
         super().__init__(
             model=model,
@@ -979,6 +983,9 @@ class DPOTrainer(Trainer):
             )
         if "image_sizes" in batch:
             output["image_sizes"] = torch.cat([batch["image_sizes"], batch["image_sizes"]], dim=0)
+        # add audio llm support
+        if "input_features" in batch:
+            output["input_features"] = torch.cat([batch["input_features"], batch["input_features"]], dim=0)
 
         # Concatenate the chosen and rejected completions
         max_completion_length = max(batch["chosen_input_ids"].shape[1], batch["rejected_input_ids"].shape[1])
@@ -1484,6 +1491,9 @@ class DPOTrainer(Trainer):
             model_kwargs["pixel_attention_mask"] = concatenated_batch["pixel_attention_mask"]
         if "image_sizes" in concatenated_batch:
             model_kwargs["image_sizes"] = concatenated_batch["image_sizes"]
+        # add audio llm support
+        if "input_features" in concatenated_batch:
+            model_kwargs["input_features"] = concatenated_batch["input_features"]
 
         prompt_input_ids = concatenated_batch["prompt_input_ids"]
         prompt_attention_mask = concatenated_batch["prompt_attention_mask"]

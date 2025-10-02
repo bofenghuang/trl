@@ -602,6 +602,7 @@ def get_peft_config(model_args: ModelConfig) -> "Optional[PeftConfig]":
         use_rslora=model_args.use_rslora,
         use_dora=model_args.use_dora,
         modules_to_save=model_args.lora_modules_to_save,
+        exclude_modules=model_args.lora_exclude_modules,
     )
 
     return peft_config

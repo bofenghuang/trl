@@ -199,7 +199,7 @@ class DPOConfig(TrainingArguments):
             </Deprecated>
     """
 
-    _VALID_DICT_FIELDS = TrainingArguments._VALID_DICT_FIELDS + ["model_init_kwargs", "ref_model_init_kwargs"]
+    _VALID_DICT_FIELDS = TrainingArguments._VALID_DICT_FIELDS + ["model_init_kwargs", "ref_model_init_kwargs", "dataset_kwargs"]
 
     # Parameters whose default values are overridden from TrainingArguments
     learning_rate: float = field(
@@ -460,6 +460,16 @@ class DPOConfig(TrainingArguments):
         metadata={
             "help": "Whether to generate and log completions from both the model and the reference model to W&B, MLFLow "
             "or Comet during evaluation."
+        },
+    )
+
+    dataset_kwargs: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": "Dictionary of optional keyword arguments for the dataset preparation. The only supported key is "
+            "`skip_prepare_dataset`. If the model is a VLM, `skip_prepare_dataset` value is ignored. When the model "
+            "is a VLM, `skip_prepare_dataset` is automatically treated as `True` regardless of the provided value, "
+            "since preprocessing is done on the fly."
         },
     )
 
