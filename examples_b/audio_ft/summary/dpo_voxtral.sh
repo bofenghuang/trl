@@ -8,7 +8,7 @@ echo "START TIME: $(date)"
 # export TOKENIZERS_PARALLELISM="false"
 
 # export CUDA_VISIBLE_DEVICES=2,3
-export CUDA_VISIBLE_DEVICES=4,5,6,7
+# export CUDA_VISIBLE_DEVICES=4,5,6,7
 
 # pytorch debug
 export CUDA_LAUNCH_BLOCKING=1
@@ -37,12 +37,15 @@ root_dir="/home/bhuang/llm/trl"
 output_dir="./outputs/summary/audio_ft/edenred"
 
 # model_name="/projects/bhuang/models/llm/pretrained/mistralai/Voxtral-Mini-3B-2507"
-model_name="/home/bhuang/llm/trl/outputs/summary/audio_ft/edenred/sft_voxtral_mini_3b_2507_lora_r64_ep3_bs128_lr1e4_merged"
+# model_name="/home/bhuang/llm/trl/outputs/summary/audio_ft/edenred/sft_voxtral_mini_3b_2507_lora_r64_ep3_bs128_lr1e4_merged"
+model_name="/home/bhuang/llm/trl/outputs/summary/audio_ft/edenred/sft_voxtral_mini_3b_2507_lora_r64_ep3_bs128_lr1e4_self_reviewed_merged"
 
-train_dataset_file="/projects/bhuang/corpus/text/summary/edenred/generated_summaries/dpo/qwen3_235b_a22b_instruct_2507_fp8_vs_qwen3_omni_30b_a3b_thinking/audio_voxtral/train.jsonl"
-eval_dataset_file="/projects/bhuang/corpus/text/summary/edenred/generated_summaries/dpo/qwen3_235b_a22b_instruct_2507_fp8_vs_qwen3_omni_30b_a3b_thinking/audio_voxtral/test.jsonl"
+# train_dataset_file="/projects/bhuang/corpus/text/summary/edenred/generated_summaries/dpo/qwen3_235b_a22b_instruct_2507_fp8_vs_qwen3_omni_30b_a3b_thinking/audio_voxtral/train.jsonl"
+# eval_dataset_file="/projects/bhuang/corpus/text/summary/edenred/generated_summaries/dpo/qwen3_235b_a22b_instruct_2507_fp8_vs_qwen3_omni_30b_a3b_thinking/audio_voxtral/test.jsonl"
+train_dataset_file="/projects/bhuang/corpus/text/summary/edenred/generated_summaries/dpo/qwen3_235b_a22b_instruct_2507_fp8_self_reviewed_vs_qwen3_omni_30b_a3b_thinking/audio_voxtral/train.jsonl"
+eval_dataset_file="/projects/bhuang/corpus/text/summary/edenred/generated_summaries/dpo/qwen3_235b_a22b_instruct_2507_fp8_self_reviewed_vs_qwen3_omni_30b_a3b_thinking/audio_voxtral/test.jsonl"
 
-run_name="dpo_voxtral_mini_3b_2507_lora_r64_ep1_bs128_lr5e6_beta001"
+run_name="dpo_voxtral_mini_3b_2507_lora_r64_ep1_bs128_lr5e6_beta05_self_reviewed"
 
 # cmd
 # cmd="python"
@@ -83,7 +86,7 @@ $cmd $script_path \
     --num_train_epochs 1 \
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 1 \
-    --gradient_accumulation_steps 32 \
+    --gradient_accumulation_steps 16 \
     --optim adamw_torch_fused \
     --learning_rate 5e-6 \
     --adam_beta1 0.9 \
@@ -91,7 +94,7 @@ $cmd $script_path \
     --lr_scheduler_type cosine \
     --warmup_ratio 0.05 \
     --weight_decay 0.01 \
-    --beta 0.01 \
+    --beta 0.5 \
     --bf16 true \
     --gradient_checkpointing \
     --gradient_checkpointing_kwargs '{"use_reentrant": false}' \

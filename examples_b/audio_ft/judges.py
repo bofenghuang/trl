@@ -186,6 +186,7 @@ class VLLMPairwiseJudge(BasePairwiseJudge):
                     **self.request_kwargs,
                 )
                 content = response.choices[0].message.content
+                # print(f"Judge response: {response}")
                 obj = _parse_json_choice(content)
                 choice = str(obj.get("choice", "")).strip()
                 if choice not in ("0", "1"):
@@ -237,7 +238,8 @@ class VLLMPairwiseJudge(BasePairwiseJudge):
                     choice_shuffled = fut.result()
                     if choice_shuffled in (0, 1):
                         results[i] = unshuffle[choice_shuffled]
-                except Exception:
+                except Exception as e:
+                    print(f"Judge failed for prompt {p}: {e}")
                     results[i] = -1
 
         print(f"Judge results: {results}")

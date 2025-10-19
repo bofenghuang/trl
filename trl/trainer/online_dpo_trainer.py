@@ -1373,9 +1373,11 @@ class OnlineDPOTrainer(Trainer):
                 template = environment.from_string(SIMPLE_CHAT_TEMPLATE)
                 # prompts = [template.render(messages=prompt) for prompt in prompts]
                 # completions = [template.render(messages=completion) for completion in completions]
-                # prompts = [template.render(messages=prompt) for prompt in inputs["judge_prompt"]]
-                prompts = inputs["judge_prompt"]
-                print(f"Completions: {completions}")
+                prompts = [template.render(messages=prompt) for prompt in inputs["judge_prompt"]]
+                completions = [template.render(messages=completion) for completion in completions]
+                # prompts = inputs["judge_prompt"]
+                # print(f"Prompts: {prompts}")
+                # print(f"Completions: {completions}")
 
             ranks_of_first_completion = self.judge.judge(
                 prompts, list(zip(completions[:batch_size], completions[batch_size:]))

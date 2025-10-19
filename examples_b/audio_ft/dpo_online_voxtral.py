@@ -80,7 +80,7 @@ def main(script_args, training_args, model_args, dataset_args):
 
     judge = VLLMPairwiseJudge(
         # temperature=0.0,
-        max_tokens=1024,
+        max_tokens=4096,
         max_workers=32,  # tune based on your vLLM server throughput
     )
 

@@ -54,6 +54,7 @@ def main(lora_model_name_or_path: str):
     processor.save_pretrained(output_dir)
     print("Saved processor")
 
+
 if __name__ == "__main__":
     import fire
 

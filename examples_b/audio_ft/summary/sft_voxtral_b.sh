@@ -39,10 +39,13 @@ output_dir="./outputs/summary/audio_ft/edenred"
 # model_name="/projects/bhuang/models/llm/pretrained/mistralai/Voxtral-Mini-3B-2507"
 model_name="/projects/bhuang/models/llm/pretrained/mistralai/Voxtral-Small-24B-2507"
 
-train_dataset_file="/projects/bhuang/corpus/text/summary/edenred/generated_summaries/qwen3_235b_a22b_instruct_2507_fp8/sft_audio_voxtral/train.jsonl"
-eval_dataset_file="/projects/bhuang/corpus/text/summary/edenred/generated_summaries/qwen3_235b_a22b_instruct_2507_fp8/sft_audio_voxtral/test.jsonl"
+# train_dataset_file="/projects/bhuang/corpus/text/summary/edenred/generated_summaries/qwen3_235b_a22b_instruct_2507_fp8/sft_audio_voxtral/train.jsonl"
+# train_dataset_file="/projects/bhuang/corpus/text/summary/edenred/generated_summaries/qwen3_235b_a22b_instruct_2507_fp8/sft_audio_voxtral/train_concat_sum_asr.jsonl"
+# eval_dataset_file="/projects/bhuang/corpus/text/summary/edenred/generated_summaries/qwen3_235b_a22b_instruct_2507_fp8/sft_audio_voxtral/test.jsonl"
+train_dataset_file="/projects/bhuang/corpus/text/summary/edenred/generated_summaries/qwen3_235b_a22b_instruct_2507_fp8_self_reviewed/sft_audio_voxtral/train.jsonl"
+eval_dataset_file="/projects/bhuang/corpus/text/summary/edenred/generated_summaries/qwen3_235b_a22b_instruct_2507_fp8_self_reviewed/sft_audio_voxtral/test.jsonl"
 
-run_name="sft_voxtral_small_24b_2507_lora_r64_ep3_bs128_lr1e4"
+run_name="sft_voxtral_small_24b_2507_lora_r64_ep3_bs128_lr1e4_self_reviewed"
 
 # cmd
 # cmd="python"

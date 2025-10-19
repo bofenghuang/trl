@@ -7,7 +7,7 @@ echo "START TIME: $(date)"
 # export OMP_NUM_THREADS="1"
 # export TOKENIZERS_PARALLELISM="false"
 
-export CUDA_VISIBLE_DEVICES=2,3
+export CUDA_VISIBLE_DEVICES=2,3,4,5,6,7
 # export CUDA_VISIBLE_DEVICES=4,5,6,7
 
 # pytorch debug
@@ -45,7 +45,7 @@ model_name="/home/bhuang/llm/trl/outputs/summary/audio_ft/edenred/sft_voxtral_mi
 train_dataset_file="/projects/bhuang/corpus/text/summary/edenred/generated_summaries/qwen3_235b_a22b_instruct_2507_fp8/dpo_online_audio_voxtral/train.jsonl"
 eval_dataset_file="/projects/bhuang/corpus/text/summary/edenred/generated_summaries/qwen3_235b_a22b_instruct_2507_fp8/dpo_online_audio_voxtral/test.jsonl"
 
-run_name="dpo_online_voxtral_mini_3b_2507_lora_r64_ep1_bs64_lr5e6_tmp"
+run_name="dpo_online_voxtral_mini_3b_2507_lora_r64_ep1_bs48_lr5e6"
 
 # cmd
 # cmd="python"
@@ -75,6 +75,9 @@ script_path="$root_dir/examples_b/audio_ft/dpo_online_voxtral.py"
     # --dataset_num_proc 32 \
     # --cache_implementation dynamic \
     # --cache_implementation static \
+    # --eval_dataset_file $eval_dataset_file \
+    # --eval_strategy steps \
+    # --overwrite_output_dir \
 
 $cmd $script_path \
     --model_name_or_path $model_name \
@@ -86,13 +89,11 @@ $cmd $script_path \
     --lora_target_modules all-linear \
     --lora_exclude_modules ".*(audio_tower|multi_modal_projector).*" \
     --train_dataset_file $train_dataset_file \
-    --eval_dataset_file $eval_dataset_file \
     --output_dir $output_dir/$run_name \
-    --overwrite_output_dir \
     --num_train_epochs 1 \
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 1 \
-    --gradient_accumulation_steps 1 \
+    --gradient_accumulation_steps 8 \
     --optim adamw_torch_fused \
     --learning_rate 5e-6 \
     --adam_beta1 0.9 \
@@ -112,7 +113,7 @@ $cmd $script_path \
     --remove_unused_columns false \
     --dataset_text_field "" \
     --dataset_kwargs '{"skip_prepare_dataset": true}' \
-    --eval_strategy steps \
+    --eval_strategy no \
     --eval_steps 50 \
     --save_strategy steps \
     --save_steps 50 \
